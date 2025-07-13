@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/Strings.sol"
+
+/**
+ * @title SimpleNFT
+ * @dev ERC721 Token that can be minted by the owner.
+ */
+contract SimpleNFT is ERC721, ERC721Enumerable, Ownable {
+    using Counters for Counters.Counter;
+    using Strings for uint256;
+
+    Counters.Counter private _tokenIdCounter;
+
+    string public baseURI; // Base URI for metadata
+    string public baseExtension = ".json"; // File extension for metadata
+
+    uint256 public maxSupply = 10000; // Max number of tokens
+
+    constructor(string memory _name, string memory _symbol, string memory _baseURI) ERC721(_name, _symbol) {
+        baseURI = _baseURI;
+    }
+
+    /**
+     * @dev Mint one NFT to the given address.
+     * @param to Address to receive the NFT
+     */
+    function mint(address to) public onlyOwner {
+        require(totalSupply() < maxSupply, "Max supply reached");
+
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(to, tokenId);
+    }
+
+    /**
+     * @dev Set base URI for all tokens.
+     */
+    function setBaseURI(string memory _newBaseURI) public onlyOwner {
+        baseURI = _newBaseURI;
+    }
+
+    /**
+     * @dev Set file extension (e.g., .json, .ipfs)
+     */
+    function setBaseExtension(string memory _newExtension) public onlyOwner {
+        baseExtension = _newExtension;
+    }
+
+    /**
+     * @dev Override tokenURI to return full URI.
+     */
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+
+        string memory base = baseURI;
+        return bytes(base).length > 0 ? string(abi.encodePacked(base, tokenId.toString(), baseExtension)) : "";
+    }
+
+    // The following functions are overrides required by Solidity.
+
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
+        internal
+        override(ERC721, ERC721Enumerable)
+    {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721Enumerable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+}
